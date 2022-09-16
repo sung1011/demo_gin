@@ -1,0 +1,59 @@
+{{define "default/index.html"}}
+<html>
+    <title>{{.title}}</title>
+    <head>
+        <link rel="stylesheet" href="/static_css/base.css">
+    </head>
+    <body>
+        {{template "public/page_header.html" . }}
+
+        <h4>var</h4>
+        {{.t0}}
+
+        <!-- 赋值 -->
+        <h4>assignment</h4>
+        {{$tmp:=.t1}}
+        {{$tmp}}
+
+        <!-- 正常迭代 -->
+        <h4>range</h4>
+        {{range $k,$v:=.t2}}
+            {{$k}}--{{$v.Name}}<br>
+        {{end}}
+
+        <!-- t3是空 -->
+        <h4>range empty</h4>
+        {{range $k,$v:=.t3}}
+            {{$k}}--{{$v}}<br>
+        {{else}}
+            nothing
+        {{end}}
+
+        <!-- 解构 .t4.Name .t4.Age简写为.t4 .Name .Age -->
+        <h4>with</h4>
+        {{with .t4}}
+            {{.Name}}
+            {{.Age}}
+            {{.Sex}}
+        {{end}}
+
+        <!-- 条件判断 -->
+        <h4>if else</h4>
+        {{if gt .t5 90}}
+            优秀
+        {{else if gt .t5 60}}
+            及格
+        {{else}}
+            不及格
+        {{end}}
+
+        <!-- 预定义函数 -->
+        <h4>len</h4>
+        {{len .title}}
+
+        <!-- 自定义函数 -->
+        <h4>custom tpl</h4>
+        {{UnixToDate .t6}}
+    </body>
+</html>
+{{end}}

@@ -1,0 +1,17 @@
+{{define "admin/index.html"}}
+<html>
+    <title>{{.title}}</title>
+    <head>
+        <link rel="stylesheet" href="/static_css/base.css">
+    </head>
+    <body>
+        {{template "public/page_header.html" .}}
+        <h3>{{.h1}}</h3>
+        <form action="/demo/input/dopost" method="post">
+            uid: <input type="text" name="uid"/> | 
+            name: <input type="text" name="name"/> | 
+            <input type="submit" value="commit">
+        </form>
+    </body>
+</html>
+{{end}}

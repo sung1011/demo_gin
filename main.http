@@ -1,0 +1,24 @@
+@path=postbind
+@host = 127.0.0.1:8088
+
+@url = http://{{host}}/{{path}}
+@contentType = application/json
+
+###
+GET {{url}}
+
+###
+POST {{url}}?uid=10001
+Content-Type: application/x-www-form-urlencoded
+
+un=sunji&pd=wow123
+
+###
+
+POST {{url}}
+Content-Type: application/xml
+
+<request>
+    <usn>sample</usn>
+    <pwd>Wed, 21 Oct 2015 18:27:50 GMT</pwd>
+</request>
