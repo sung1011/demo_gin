@@ -1,0 +1,16 @@
+{{define "admin/upload.html"}}
+<html>
+    <title>{{.title}}</title>
+    <head>
+        <link rel="stylesheet" href="/static_css/base.css">
+    </head>
+    <body>
+        {{template "public/page_header.html" .}}
+        <h3>{{.h1}}</h3>
+        <form action="/demo/upload/doUpload" method="post" enctype="multipart/form-data">
+            avatar: <input type="file" name="avatar"/> | 
+            <input type="submit" value="commit">
+        </form>
+    </body>
+</html>
+{{end}}

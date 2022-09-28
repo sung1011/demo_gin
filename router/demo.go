@@ -1,8 +1,12 @@
 package router
 
 import (
+	"bytes"
+	"crypto/md5"
 	"encoding/xml"
 	"fmt"
+	"io"
+	"log"
 	"net/http"
 	"time"
 
@@ -12,14 +16,83 @@ import (
 
 func InitDemo(r *gin.Engine) {
 	rg := r.Group("/demo")
+	demoRouter(rg)
+	demoUpload(rg)
 	demoMiddleWare(rg)
 	demoInput(rg)
-	demoRoute(rg)
+	demoRender(rg)
+}
+
+func demoRouter(rg *gin.RouterGroup) {
+	rgRouter := rg.Group("/router")
+	{
+		// curl -sL 127.0.0.1:8088/demo/router/match1/wifjw
+		rgRouter.GET("/match1/:category", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{
+				"msg": "ok",
+				"p1":  c.Params.ByName("category"),
+			})
+		})
+		// curl -sL 127.0.0.1:8088/demo/router/match2/wifjw/abc
+		rgRouter.GET("/match2/:category/:post", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{
+				"msg": "ok",
+				"p1":  c.Params.ByName("category"),
+				"p2":  c.Param("post"),
+			})
+		})
+		// curl -sL 127.0.0.1:8088/demo/router/matchall/wifjw/abc
+		rgRouter.GET("/matchall/*name", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{
+				"msg": "ok",
+				"p1":  c.Params.ByName("name"),
+			})
+		})
+	}
+}
+
+func demoUpload(rg *gin.RouterGroup) {
+	rgUpload := rg.Group("/upload")
+	{
+		rgUpload.GET("/", func(c *gin.Context) {
+			c.HTML(http.StatusOK, "admin/upload.html", gin.H{})
+		})
+		rgUpload.POST("/doUpload", func(c *gin.Context) {
+			// 获取上传的文件
+			fileHeader, err := c.FormFile("avatar")
+			if err != nil {
+				c.JSON(http.StatusOK, gin.H{"err": err})
+				return
+			}
+
+			// 组装文件名 {uid}_{md5sum(*file)}
+			// TODO 后缀没处理
+			h := md5.New()
+			f, _ := fileHeader.Open()
+			defer f.Close()
+			if _, err := io.Copy(h, f); err != nil {
+				log.Fatal(err)
+			}
+			md5value := fmt.Sprintf("%x", h.Sum(nil))
+			var buf bytes.Buffer
+			buf.WriteString("./static/upload/")
+			buf.WriteString(c.GetString("uid"))
+			buf.WriteString("_")
+			buf.WriteString(md5value)
+			uploadPath := buf.String()
+			if err = c.SaveUploadedFile(fileHeader, uploadPath); err != nil {
+				c.JSON(http.StatusOK, gin.H{"err": err})
+				return
+			}
+			c.JSON(http.StatusOK, gin.H{
+				"msg": "ok",
+			})
+		})
+	}
 }
 
 func demoMiddleWare(rg *gin.RouterGroup) {
 	// 含有c.Next()的 handlerFunc 是中间件
-
 	rgMw := rg.Group("/mw")
 	{
 		// 多个handlerFunc
@@ -61,6 +134,7 @@ func demoMiddleWare(rg *gin.RouterGroup) {
 			c.Abort() // 相当于忽略其他handler; index直接移到handlers结尾之后(超大数)
 			fmt.Println("222")
 		}
+
 		rgMw.GET("mwabort", mw1, mwAbort, handler) // 123 111 222 789
 		// rgMw.GET("mwabort", mw1, handler, mwAbort) // 123 ~~~ 111 222 789; c.Abort之前的会执行
 
@@ -69,6 +143,7 @@ func demoMiddleWare(rg *gin.RouterGroup) {
 
 		// use组中间件
 		rgMw.Use(mw1, mw2) // 方式1
+
 		// rgMw := rg.Group("/mw", mw1, mw2) // 方式2
 		rgMw.GET("mwgroup", handler) // 123 abc ~~~ xyz 789
 	}
@@ -136,18 +211,18 @@ func demoInput(rg *gin.RouterGroup) {
 	}
 }
 
-func demoRoute(rg *gin.RouterGroup) {
-	rgRoute := rg.Group("/route")
+func demoRender(rg *gin.RouterGroup) {
+	rgRender := rg.Group("/route")
 	{
 		// json
-		rgRoute.GET("/json", func(c *gin.Context) {
+		rgRender.GET("/json", func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{
 				"msg": "json",
 				"zh":  "你好",
 			})
 		})
 		// json 结构体
-		rgRoute.GET("/jsons", func(c *gin.Context) {
+		rgRender.GET("/jsons", func(c *gin.Context) {
 			c.JSON(http.StatusOK, struct {
 				Msg string `json:"msg"`
 			}{Msg: "json struct"})
@@ -155,30 +230,30 @@ func demoRoute(rg *gin.RouterGroup) {
 		// jsonp
 		// curl -sL "127.0.0.1:8088/jsonp?callback=xxx"
 		// xxx({"msg": "jsonp"})
-		rgRoute.GET("/jsonp", func(c *gin.Context) {
+		rgRender.GET("/jsonp", func(c *gin.Context) {
 			c.JSONP(http.StatusOK, gin.H{
 				"msg": "jsonp",
 			})
 		})
 		// xml
-		rgRoute.GET("/xml", func(c *gin.Context) {
+		rgRender.GET("/xml", func(c *gin.Context) {
 			c.XML(http.StatusOK, gin.H{
 				"msg": "xml",
 			})
 		})
 		// string
-		rgRoute.GET("/string", func(c *gin.Context) {
+		rgRender.GET("/string", func(c *gin.Context) {
 			c.String(http.StatusOK, "msg: %v", "string")
 		})
 		// yaml
-		rgRoute.GET("/yaml", func(c *gin.Context) {
+		rgRender.GET("/yaml", func(c *gin.Context) {
 			c.YAML(http.StatusOK, gin.H{
 				"message": "yaml",
 				"status":  http.StatusOK,
 			})
 		})
 		// protobuf
-		rgRoute.GET("/protobuf", func(c *gin.Context) {
+		rgRender.GET("/protobuf", func(c *gin.Context) {
 			reps := []int64{int64(1), int64(2), int64(3)}
 			label := "test protobuf"
 			data := &protoexample.Test{
@@ -190,23 +265,23 @@ func demoRoute(rg *gin.RouterGroup) {
 			c.ProtoBuf(http.StatusOK, data)
 		})
 		// toml
-		rgRoute.GET("/toml", func(c *gin.Context) {
+		rgRender.GET("/toml", func(c *gin.Context) {
 			c.TOML(http.StatusOK, gin.H{"msg": "toml"})
 		})
 		// pure json
-		rgRoute.GET("/purejson", func(c *gin.Context) {
+		rgRender.GET("/purejson", func(c *gin.Context) {
 			c.PureJSON(http.StatusOK, gin.H{"msg": "pure json", "zh": "你好"})
 		})
 		// indented json
-		rgRoute.GET("/indentedjson", func(c *gin.Context) {
+		rgRender.GET("/indentedjson", func(c *gin.Context) {
 			c.IndentedJSON(http.StatusOK, gin.H{"msg": "indented json"})
 		})
 		// secure json
-		rgRoute.GET("/securejson", func(c *gin.Context) {
+		rgRender.GET("/securejson", func(c *gin.Context) {
 			c.SecureJSON(http.StatusOK, gin.H{"msg": "secure json"})
 		})
 		// ascii json
-		rgRoute.GET("/asciijson", func(c *gin.Context) {
+		rgRender.GET("/asciijson", func(c *gin.Context) {
 			c.AsciiJSON(http.StatusOK, gin.H{"msg": "ascii json", "zh": "你好"})
 		})
 		// html
@@ -215,7 +290,7 @@ func demoRoute(rg *gin.RouterGroup) {
 		}
 		var fs []*Foo
 		fs = append(fs, &Foo{Name: "a"}, &Foo{Name: "b"}, &Foo{Name: "c"})
-		rgRoute.GET("/htmlindex", func(c *gin.Context) {
+		rgRender.GET("/htmlindex", func(c *gin.Context) {
 			c.HTML(http.StatusOK, "default/index.html", gin.H{
 				"title": "Main website",
 				"t0":    "var",
@@ -231,7 +306,7 @@ func demoRoute(rg *gin.RouterGroup) {
 				"t6": int(time.Now().Unix()), // 自定义函数
 			})
 		})
-		rgRoute.GET("/htmladmin", func(c *gin.Context) {
+		rgRender.GET("/htmladmin", func(c *gin.Context) {
 			c.HTML(http.StatusOK, "admin/index.html", gin.H{
 				"title": "Admin website",
 				"h1":    "hello administrator",

@@ -1,6 +1,7 @@
 package router
 
 import (
+	"fmt"
 	"html/template"
 
 	"github.com/gin-gonic/gin"
@@ -18,7 +19,9 @@ func InitStatc(r *gin.Engine) {
 	r.LoadHTMLGlob("tpl/**/*")
 
 	// static 静态文件的路由
-	r.Static("static_css", "./static/css")
-	r.Static("static_upload", "./static/upload")
-	r.Static("static_pic", "./static/pic")
+	var path = "static"
+	r.StaticFile("/favicon.ico", fmt.Sprintf("%s/favicon.ico", path))
+	r.Static("static_css", fmt.Sprintf("%s/css", path))
+	r.Static("static_upload", fmt.Sprintf("%s/upload", path))
+	r.Static("static_pic", fmt.Sprintf("%s/pic", path))
 }
